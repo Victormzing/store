@@ -1,0 +1,189 @@
+{
+  "identity": {
+    "name": "Wacka Accessories",
+    "tone": "Professional, Trustworthy, Clean, Fast",
+    "target_audience": "Kenyan consumers, mobile-first shoppers",
+    "primary_action": "Seamless M-Pesa Checkout"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tight",
+      "h2": "text-3xl md:text-4xl font-semibold tracking-tight",
+      "h3": "text-2xl font-semibold",
+      "body_large": "text-lg leading-relaxed",
+      "body_base": "text-base leading-normal",
+      "caption": "text-sm text-muted-foreground"
+    },
+    "imports": [
+      "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;700;800&display=swap');"
+    ]
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#10B981",
+        "foreground": "#FFFFFF",
+        "description": "Emerald Green - Evokes M-Pesa, Trust, Growth"
+      },
+      "secondary": {
+        "DEFAULT": "#F3F4F6",
+        "foreground": "#111827",
+        "description": "Cool Gray - For backgrounds and secondary actions"
+      },
+      "accent": {
+        "DEFAULT": "#111827",
+        "foreground": "#FFFFFF",
+        "description": "Deep Black - For strong contrast and luxury feel"
+      },
+      "background": "#FFFFFF",
+      "surface": "#F9FAFB",
+      "border": "#E5E7EB",
+      "muted": "#9CA3AF"
+    },
+    "usage_rules": {
+      "buttons": "Primary Green for 'Pay with M-Pesa' and 'Add to Cart'. Black for secondary.",
+      "text": "Gray-900 for headings, Gray-600 for body text.",
+      "admin_sidebar": "White with Gray-200 border or Dark Gray-900.",
+      "status_colors": {
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444",
+        "info": "#3B82F6"
+      }
+    }
+  },
+  "layout": {
+    "grid_system": {
+      "mobile": "grid-cols-1 gap-4",
+      "tablet": "grid-cols-2 gap-6",
+      "desktop": "grid-cols-4 gap-8",
+      "dashboard": "grid-cols-12 gap-6"
+    },
+    "spacing": {
+      "container_padding": "px-4 md:px-8 lg:px-12",
+      "section_spacing": "py-12 md:py-20",
+      "component_gap": "gap-4"
+    },
+    "containers": {
+      "max_width": "max-w-7xl mx-auto",
+      "card_style": "rounded-xl border border-border/50 bg-white shadow-sm hover:shadow-md transition-all duration-300"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "rounded-full px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all",
+      "secondary": "rounded-full px-6 py-6 border-2 border-gray-200 bg-transparent hover:bg-gray-50 text-gray-900"
+    },
+    "cards": {
+      "product": "group relative overflow-hidden rounded-2xl bg-gray-50 hover:bg-white transition-colors border border-transparent hover:border-gray-100",
+      "dashboard_stat": "p-6 rounded-xl border bg-white shadow-sm"
+    },
+    "inputs": {
+      "default": "h-12 rounded-lg border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all",
+      "mpesa": "pl-12 text-lg tracking-widest font-mono"
+    },
+    "navigation": {
+      "mobile": "fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-gray-200 z-50 pb-safe",
+      "desktop": "sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur-md"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "soft": "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+      "hover": "0 10px 25px -5px rgba(0, 0, 0, 0.1)"
+    },
+    "radius": {
+      "default": "0.75rem",
+      "large": "1rem",
+      "full": "9999px"
+    },
+    "glassmorphism": "bg-white/70 backdrop-blur-xl border border-white/20 shadow-sm"
+  },
+  "media": {
+    "image_urls": {
+      "hero": {
+        "url": "https://images.unsplash.com/photo-1762343291423-b231cd2ceab9",
+        "alt": "Woman wearing sunglasses and white shirt outdoors",
+        "category": "hero"
+      },
+      "products": [
+        {
+          "url": "https://images.unsplash.com/photo-1737731662588-729f42147158",
+          "alt": "Luxury Watch",
+          "category": "watches"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1717282924526-07a7373bb142",
+          "alt": "Gold Necklace",
+          "category": "jewelry"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1637759292654-a12cb2be085e",
+          "alt": "Leather Handbag",
+          "category": "bags"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1761290521477-21c12d8db198",
+          "alt": "Men's Sunglasses",
+          "category": "accessories"
+        }
+      ],
+      "placeholders": {
+        "user": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+        "logo": "https://placehold.co/200x50/10B981/FFFFFF?text=Wacka"
+      }
+    }
+  },
+  "motion": {
+    "page_transition": {
+      "initial": { "opacity": 0, "y": 20 },
+      "animate": { "opacity": 1, "y": 0 },
+      "exit": { "opacity": 0, "y": -20 },
+      "transition": { "duration": 0.3, "ease": "easeOut" }
+    },
+    "hover_scale": {
+      "whileHover": { "scale": 1.02 },
+      "whileTap": { "scale": 0.98 }
+    }
+  },
+  "accessibility": {
+    "contrast_check": "Ensure Green (#10B981) is used with White text or on dark backgrounds. Use darker green (#059669) for text on light backgrounds.",
+    "focus_states": "Visible ring-2 ring-offset-2 ring-green-500",
+    "aria_labels": "Required for all icon-only buttons (Cart, Menu, Search)"
+  },
+  "instructions_to_main_agent": [
+    "Use 'Manrope' for all headings and 'Inter' for body text.",
+    "Implement a 'Mobile-First' bottom navigation bar for the customer view.",
+    "The Admin Dashboard should be dense but clean - use tables with 'compact' styling.",
+    "For M-Pesa payment, show a clear input for phone number with a 'Pay Now' button that triggers a loading state.",
+    "Use the provided Unsplash images for the product demo data.",
+    "Do not use gradients for backgrounds; stick to solid whites and grays for a clean look.",
+    "Ensure the 'Add to Cart' flow is smooth, using a drawer or toast notification.",
+    "Use 'sonner' for all notifications (Order success, Payment failed, etc.)."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯📚🎭🎬🎪🎉🎊🎁🎀🎂🍰🎈🎨🎰💰💵💳🏦💎🪙💸🤑📊📈📉💹🔢🏆🥇 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use 'sonner' for toasts. Sonner component are located in /app/src/components/ui/sonner.tsx"
+  ]
+}

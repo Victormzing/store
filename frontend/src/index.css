@@ -1,0 +1,155 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 220 14% 10%;
+        --card: 0 0% 100%;
+        --card-foreground: 220 14% 10%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 220 14% 10%;
+        --primary: 160 84% 39%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 220 14% 96%;
+        --secondary-foreground: 220 14% 10%;
+        --muted: 220 14% 96%;
+        --muted-foreground: 220 9% 46%;
+        --accent: 220 14% 10%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 220 13% 91%;
+        --input: 220 13% 91%;
+        --ring: 160 84% 39%;
+        --radius: 0.75rem;
+        --success: 160 84% 39%;
+        --warning: 38 92% 50%;
+        --info: 217 91% 60%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground antialiased;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Manrope', sans-serif;
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+}
+
+.animate-pulse-subtle {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Product Card Hover Effect */
+.product-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.1);
+}
+
+/* Button Styles */
+.btn-primary {
+    @apply bg-emerald-500 text-white rounded-full px-6 py-3 font-semibold;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:hover {
+    @apply bg-emerald-600;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* Mobile Bottom Navigation Safe Area */
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+/* Glass Effect */
+.glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Status Colors */
+.status-pending { @apply bg-amber-100 text-amber-700; }
+.status-paid { @apply bg-emerald-100 text-emerald-700; }
+.status-processing { @apply bg-blue-100 text-blue-700; }
+.status-completed { @apply bg-emerald-100 text-emerald-700; }
+.status-failed { @apply bg-red-100 text-red-700; }
+.status-cancelled { @apply bg-gray-100 text-gray-700; }
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Debug wrapper */
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+}

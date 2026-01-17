@@ -1,0 +1,209 @@
+/* Wacka Accessories - Custom Styles */
+
+/* Layout */
+.page-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+    flex: 1;
+    padding-bottom: 80px;
+}
+
+@media (min-width: 768px) {
+    .main-content {
+        padding-bottom: 0;
+    }
+}
+
+/* Hero Section */
+.hero-section {
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.6), transparent);
+}
+
+/* Product Grid */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+@media (min-width: 640px) {
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .product-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2rem;
+    }
+}
+
+/* Category Pills */
+.category-pill {
+    @apply px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.category-pill.active {
+    @apply bg-emerald-500 text-white;
+}
+
+.category-pill:not(.active) {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+}
+
+/* Cart Badge */
+.cart-badge {
+    @apply absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-semibold;
+}
+
+/* Admin Sidebar */
+.admin-sidebar {
+    @apply w-64 bg-white border-r border-gray-200 min-h-screen;
+}
+
+.admin-nav-item {
+    @apply flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg mx-2;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-nav-item.active {
+    @apply bg-emerald-50 text-emerald-700;
+}
+
+/* Table Styles */
+.admin-table {
+    @apply w-full text-sm;
+}
+
+.admin-table th {
+    @apply text-left py-3 px-4 font-semibold text-gray-600 bg-gray-50 border-b;
+}
+
+.admin-table td {
+    @apply py-3 px-4 border-b border-gray-100;
+}
+
+.admin-table tr:hover td {
+    @apply bg-gray-50;
+}
+
+/* Stat Card */
+.stat-card {
+    @apply p-6 bg-white rounded-xl border border-gray-100;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* M-Pesa Input */
+.mpesa-phone-input {
+    @apply text-lg tracking-wider font-mono;
+}
+
+/* Loading Skeleton */
+.skeleton {
+    @apply bg-gray-200 rounded animate-pulse;
+}
+
+/* Price Display */
+.price-original {
+    @apply text-gray-400 line-through text-sm;
+}
+
+.price-current {
+    @apply text-emerald-600 font-bold;
+}
+
+/* Stock Status */
+.stock-ok {
+    @apply text-emerald-600;
+}
+
+.stock-low {
+    @apply text-amber-600;
+}
+
+.stock-out {
+    @apply text-red-600;
+}
+
+/* Order Status Badge */
+.order-status-badge {
+    @apply px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide;
+}
+
+/* Form Input Focus */
+input:focus, select:focus, textarea:focus {
+    @apply ring-2 ring-emerald-500/20 border-emerald-500;
+}
+
+/* Mobile Navigation */
+.mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.mobile-nav-item {
+    @apply flex flex-col items-center justify-center py-2 text-gray-500;
+    transition: color 0.15s ease;
+}
+
+.mobile-nav-item.active {
+    @apply text-emerald-600;
+}
+
+.mobile-nav-item:hover {
+    @apply text-emerald-600;
+}
+
+/* Image Aspect Ratio */
+.aspect-product {
+    aspect-ratio: 1 / 1;
+}
+
+/* Checkout Steps */
+.checkout-step {
+    @apply flex items-center gap-2;
+}
+
+.checkout-step-number {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold;
+}
+
+.checkout-step-number.active {
+    @apply bg-emerald-500 text-white;
+}
+
+.checkout-step-number.completed {
+    @apply bg-emerald-100 text-emerald-700;
+}
+
+.checkout-step-number.pending {
+    @apply bg-gray-100 text-gray-400;
+}
+
+/* Quantity Selector */
+.qty-btn {
+    @apply w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600;
+    transition: background-color 0.15s ease;
+}
+
+.qty-btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}
