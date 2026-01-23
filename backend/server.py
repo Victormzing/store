@@ -2812,6 +2812,775 @@ async def get_related_products(product_id: str, limit: int = 4):
     
     return result
 
+# ==================== COUPON ROUTES ====================
+@api_router.get("/admin/coupons", response_model=List[CouponResponse])
+async def get_all_coupons(user: dict = Depends(get_admin_user)):
+    """Get all coupons"""
+    coupons = await db.coupons.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [
+        CouponResponse(
+            id=c["id"],
+            code=c["code"],
+            type=c["type"],
+            value=c["value"],
+            min_order_amount=c.get("min_order_amount", 0),
+            max_discount=c.get("max_discount"),
+            usage_limit=c.get("usage_limit"),
+            times_used=c.get("times_used", 0),
+            start_date=datetime.fromisoformat(c["start_date"]) if c.get("start_date") else None,
+            end_date=datetime.fromisoformat(c["end_date"]) if c.get("end_date") else None,
+            is_active=c.get("is_active", True),
+            created_at=datetime.fromisoformat(c["created_at"]) if isinstance(c["created_at"], str) else c["created_at"]
+        )
+        for c in coupons
+    ]
+
+@api_router.post("/admin/coupons", response_model=CouponResponse)
+async def create_coupon(coupon: CouponCreate, user: dict = Depends(get_admin_user)):
+    """Create a new coupon"""
+    existing = await db.coupons.find_one({"code": coupon.code.upper()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+    
+    coupon_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    coupon_doc = {
+        "id": coupon_id,
+        "code": coupon.code.upper(),
+        "type": coupon.type,
+        "value": coupon.value,
+        "min_order_amount": coupon.min_order_amount,
+        "max_discount": coupon.max_discount,
+        "usage_limit": coupon.usage_limit,
+        "times_used": 0,
+        "start_date": coupon.start_date.isoformat() if coupon.start_date else None,
+        "end_date": coupon.end_date.isoformat() if coupon.end_date else None,
+        "is_active": coupon.is_active,
+        "created_at": now
+    }
+    await db.coupons.insert_one(coupon_doc)
+    
+    return CouponResponse(
+        id=coupon_id,
+        code=coupon.code.upper(),
+        type=coupon.type,
+        value=coupon.value,
+        min_order_amount=coupon.min_order_amount,
+        max_discount=coupon.max_discount,
+        usage_limit=coupon.usage_limit,
+        times_used=0,
+        start_date=coupon.start_date,
+        end_date=coupon.end_date,
+        is_active=coupon.is_active,
+        created_at=datetime.fromisoformat(now)
+    )
+
+@api_router.delete("/admin/coupons/{coupon_id}")
+async def delete_coupon(coupon_id: str, user: dict = Depends(get_admin_user)):
+    """Delete a coupon"""
+    result = await db.coupons.delete_one({"id": coupon_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    return {"message": "Coupon deleted"}
+
+@api_router.post("/coupons/validate")
+async def validate_coupon(validation: CouponValidation, user: dict = Depends(get_current_user)):
+    """Validate a coupon code"""
+    coupon = await db.coupons.find_one({"code": validation.code.upper(), "is_active": True}, {"_id": 0})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Invalid coupon code")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Check dates
+    if coupon.get("start_date"):
+        start = datetime.fromisoformat(coupon["start_date"])
+        if now < start:
+            raise HTTPException(status_code=400, detail="Coupon not yet active")
+    
+    if coupon.get("end_date"):
+        end = datetime.fromisoformat(coupon["end_date"])
+        if now > end:
+            raise HTTPException(status_code=400, detail="Coupon has expired")
+    
+    # Check usage limit
+    if coupon.get("usage_limit") and coupon.get("times_used", 0) >= coupon["usage_limit"]:
+        raise HTTPException(status_code=400, detail="Coupon usage limit reached")
+    
+    # Check minimum order amount
+    if validation.order_total < coupon.get("min_order_amount", 0):
+        raise HTTPException(status_code=400, detail=f"Minimum order amount is KES {coupon['min_order_amount']:,.0f}")
+    
+    # Calculate discount
+    if coupon["type"] == CouponType.PERCENTAGE:
+        discount = validation.order_total * (coupon["value"] / 100)
+        if coupon.get("max_discount"):
+            discount = min(discount, coupon["max_discount"])
+    else:
+        discount = coupon["value"]
+    
+    return {
+        "valid": True,
+        "code": coupon["code"],
+        "type": coupon["type"],
+        "discount": round(discount, 2),
+        "new_total": round(validation.order_total - discount, 2)
+    }
+
+# ==================== REVIEWS & RATINGS ROUTES ====================
+@api_router.post("/reviews", response_model=ReviewResponse)
+async def create_review(review: ReviewCreate, user: dict = Depends(get_current_user)):
+    """Create a product review"""
+    # Check if product exists
+    product = await db.products.find_one({"id": review.product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Check if user has purchased this product
+    order_with_product = await db.orders.find_one({
+        "user_id": user["id"],
+        "items.product_id": review.product_id,
+        "status": {"$in": [OrderStatus.PAID, OrderStatus.COMPLETED, OrderStatus.SHIPPED]}
+    })
+    if not order_with_product:
+        raise HTTPException(status_code=400, detail="You can only review products you've purchased")
+    
+    # Check if already reviewed
+    existing = await db.reviews.find_one({"user_id": user["id"], "product_id": review.product_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="You've already reviewed this product")
+    
+    review_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    review_doc = {
+        "id": review_id,
+        "product_id": review.product_id,
+        "user_id": user["id"],
+        "rating": review.rating,
+        "title": review.title,
+        "comment": review.comment,
+        "is_approved": True,  # Auto-approve for now
+        "created_at": now
+    }
+    await db.reviews.insert_one(review_doc)
+    
+    # Update product average rating
+    reviews = await db.reviews.find({"product_id": review.product_id, "is_approved": True}, {"_id": 0}).to_list(1000)
+    avg_rating = sum(r["rating"] for r in reviews) / len(reviews) if reviews else 0
+    await db.products.update_one({"id": review.product_id}, {"$set": {"average_rating": avg_rating, "review_count": len(reviews)}})
+    
+    return ReviewResponse(
+        id=review_id,
+        product_id=review.product_id,
+        user_id=user["id"],
+        user_name=f"{user['first_name']} {user['last_name'][:1]}.",
+        rating=review.rating,
+        title=review.title,
+        comment=review.comment,
+        is_approved=True,
+        created_at=datetime.fromisoformat(now)
+    )
+
+@api_router.get("/products/{product_id}/reviews", response_model=List[ReviewResponse])
+async def get_product_reviews(product_id: str, skip: int = 0, limit: int = 20):
+    """Get reviews for a product"""
+    reviews = await db.reviews.find(
+        {"product_id": product_id, "is_approved": True}, {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    result = []
+    for r in reviews:
+        user = await db.users.find_one({"id": r["user_id"]}, {"_id": 0})
+        result.append(ReviewResponse(
+            id=r["id"],
+            product_id=r["product_id"],
+            user_id=r["user_id"],
+            user_name=f"{user['first_name']} {user['last_name'][:1]}." if user else "Anonymous",
+            rating=r["rating"],
+            title=r.get("title"),
+            comment=r.get("comment"),
+            is_approved=r["is_approved"],
+            created_at=datetime.fromisoformat(r["created_at"]) if isinstance(r["created_at"], str) else r["created_at"]
+        ))
+    return result
+
+@api_router.get("/admin/reviews", response_model=List[ReviewResponse])
+async def get_all_reviews(skip: int = 0, limit: int = 50, user: dict = Depends(get_admin_user)):
+    """Get all reviews (admin)"""
+    reviews = await db.reviews.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    result = []
+    for r in reviews:
+        user_doc = await db.users.find_one({"id": r["user_id"]}, {"_id": 0})
+        result.append(ReviewResponse(
+            id=r["id"],
+            product_id=r["product_id"],
+            user_id=r["user_id"],
+            user_name=f"{user_doc['first_name']} {user_doc['last_name']}" if user_doc else "Anonymous",
+            rating=r["rating"],
+            title=r.get("title"),
+            comment=r.get("comment"),
+            is_approved=r.get("is_approved", True),
+            created_at=datetime.fromisoformat(r["created_at"]) if isinstance(r["created_at"], str) else r["created_at"]
+        ))
+    return result
+
+@api_router.patch("/admin/reviews/{review_id}/approve")
+async def approve_review(review_id: str, approved: bool = True, user: dict = Depends(get_admin_user)):
+    """Approve or reject a review"""
+    result = await db.reviews.update_one({"id": review_id}, {"$set": {"is_approved": approved}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return {"message": "Review updated"}
+
+@api_router.delete("/admin/reviews/{review_id}")
+async def delete_review(review_id: str, user: dict = Depends(get_admin_user)):
+    """Delete a review"""
+    result = await db.reviews.delete_one({"id": review_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return {"message": "Review deleted"}
+
+# ==================== WISHLIST ROUTES ====================
+@api_router.get("/wishlist", response_model=List[WishlistItemResponse])
+async def get_wishlist(user: dict = Depends(get_current_user)):
+    """Get user's wishlist"""
+    wishlist = await db.wishlists.find({"user_id": user["id"]}, {"_id": 0}).to_list(100)
+    
+    result = []
+    for item in wishlist:
+        product = await db.products.find_one({"id": item["product_id"]}, {"_id": 0})
+        if product:
+            inventory = await db.inventory.find_one({"product_id": product["id"]}, {"_id": 0})
+            result.append(WishlistItemResponse(
+                id=item["id"],
+                product_id=product["id"],
+                product_name=product["name"],
+                product_image=product["images"][0] if product.get("images") else "",
+                price=product["price"],
+                discount_price=product.get("discount_price"),
+                is_in_stock=(inventory["quantity"] if inventory else 0) > 0,
+                added_at=datetime.fromisoformat(item["added_at"]) if isinstance(item["added_at"], str) else item["added_at"]
+            ))
+    return result
+
+@api_router.post("/wishlist/{product_id}")
+async def add_to_wishlist(product_id: str, user: dict = Depends(get_current_user)):
+    """Add product to wishlist"""
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    existing = await db.wishlists.find_one({"user_id": user["id"], "product_id": product_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="Product already in wishlist")
+    
+    wishlist_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.wishlists.insert_one({
+        "id": wishlist_id,
+        "user_id": user["id"],
+        "product_id": product_id,
+        "added_at": now
+    })
+    
+    return {"message": "Added to wishlist", "id": wishlist_id}
+
+@api_router.delete("/wishlist/{product_id}")
+async def remove_from_wishlist(product_id: str, user: dict = Depends(get_current_user)):
+    """Remove product from wishlist"""
+    result = await db.wishlists.delete_one({"user_id": user["id"], "product_id": product_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Product not in wishlist")
+    return {"message": "Removed from wishlist"}
+
+# ==================== ORDER TRACKING ROUTES ====================
+@api_router.get("/orders/{order_id}/tracking", response_model=List[OrderTrackingEvent])
+async def get_order_tracking(order_id: str, user: dict = Depends(get_current_user)):
+    """Get order tracking timeline"""
+    order = await db.orders.find_one({"id": order_id, "user_id": user["id"]}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    events = await db.order_tracking.find({"order_id": order_id}, {"_id": 0}).sort("timestamp", 1).to_list(100)
+    
+    return [
+        OrderTrackingEvent(
+            id=e["id"],
+            order_id=e["order_id"],
+            status=e["status"],
+            description=e["description"],
+            location=e.get("location"),
+            timestamp=datetime.fromisoformat(e["timestamp"]) if isinstance(e["timestamp"], str) else e["timestamp"]
+        )
+        for e in events
+    ]
+
+@api_router.post("/admin/orders/{order_id}/tracking")
+async def add_tracking_event(
+    order_id: str,
+    status: str,
+    description: str,
+    location: Optional[str] = None,
+    user: dict = Depends(get_admin_user)
+):
+    """Add tracking event to order"""
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    event_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.order_tracking.insert_one({
+        "id": event_id,
+        "order_id": order_id,
+        "status": status,
+        "description": description,
+        "location": location,
+        "timestamp": now
+    })
+    
+    return {"message": "Tracking event added", "id": event_id}
+
+# ==================== SUPPLIER ROUTES ====================
+@api_router.get("/admin/suppliers", response_model=List[SupplierResponse])
+async def get_suppliers(user: dict = Depends(get_admin_user)):
+    """Get all suppliers"""
+    suppliers = await db.suppliers.find({}, {"_id": 0}).sort("name", 1).to_list(100)
+    
+    result = []
+    for s in suppliers:
+        product_count = await db.products.count_documents({"supplier_id": s["id"]})
+        result.append(SupplierResponse(
+            id=s["id"],
+            name=s["name"],
+            email=s.get("email"),
+            phone=s.get("phone"),
+            address=s.get("address"),
+            contact_person=s.get("contact_person"),
+            notes=s.get("notes"),
+            products_count=product_count,
+            created_at=datetime.fromisoformat(s["created_at"]) if isinstance(s["created_at"], str) else s["created_at"]
+        ))
+    return result
+
+@api_router.post("/admin/suppliers", response_model=SupplierResponse)
+async def create_supplier(supplier: SupplierCreate, user: dict = Depends(get_admin_user)):
+    """Create a supplier"""
+    supplier_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    supplier_doc = {
+        "id": supplier_id,
+        "name": supplier.name,
+        "email": supplier.email,
+        "phone": supplier.phone,
+        "address": supplier.address,
+        "contact_person": supplier.contact_person,
+        "notes": supplier.notes,
+        "created_at": now
+    }
+    await db.suppliers.insert_one(supplier_doc)
+    
+    return SupplierResponse(
+        id=supplier_id,
+        name=supplier.name,
+        email=supplier.email,
+        phone=supplier.phone,
+        address=supplier.address,
+        contact_person=supplier.contact_person,
+        notes=supplier.notes,
+        products_count=0,
+        created_at=datetime.fromisoformat(now)
+    )
+
+@api_router.put("/admin/suppliers/{supplier_id}", response_model=SupplierResponse)
+async def update_supplier(supplier_id: str, supplier: SupplierCreate, user: dict = Depends(get_admin_user)):
+    """Update a supplier"""
+    existing = await db.suppliers.find_one({"id": supplier_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    await db.suppliers.update_one(
+        {"id": supplier_id},
+        {"$set": {
+            "name": supplier.name,
+            "email": supplier.email,
+            "phone": supplier.phone,
+            "address": supplier.address,
+            "contact_person": supplier.contact_person,
+            "notes": supplier.notes
+        }}
+    )
+    
+    product_count = await db.products.count_documents({"supplier_id": supplier_id})
+    
+    return SupplierResponse(
+        id=supplier_id,
+        name=supplier.name,
+        email=supplier.email,
+        phone=supplier.phone,
+        address=supplier.address,
+        contact_person=supplier.contact_person,
+        notes=supplier.notes,
+        products_count=product_count,
+        created_at=datetime.fromisoformat(existing["created_at"]) if isinstance(existing["created_at"], str) else existing["created_at"]
+    )
+
+@api_router.delete("/admin/suppliers/{supplier_id}")
+async def delete_supplier(supplier_id: str, user: dict = Depends(get_admin_user)):
+    """Delete a supplier"""
+    result = await db.suppliers.delete_one({"id": supplier_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    return {"message": "Supplier deleted"}
+
+# ==================== SHIPPING ZONES ROUTES ====================
+@api_router.get("/shipping-zones", response_model=List[ShippingZoneResponse])
+async def get_shipping_zones():
+    """Get all active shipping zones"""
+    zones = await db.shipping_zones.find({"is_active": True}, {"_id": 0}).to_list(100)
+    return [
+        ShippingZoneResponse(
+            id=z["id"],
+            name=z["name"],
+            regions=z["regions"],
+            base_rate=z["base_rate"],
+            per_item_rate=z.get("per_item_rate", 0),
+            free_shipping_threshold=z.get("free_shipping_threshold"),
+            is_active=z.get("is_active", True),
+            created_at=datetime.fromisoformat(z["created_at"]) if isinstance(z["created_at"], str) else z["created_at"]
+        )
+        for z in zones
+    ]
+
+@api_router.post("/admin/shipping-zones", response_model=ShippingZoneResponse)
+async def create_shipping_zone(zone: ShippingZoneCreate, user: dict = Depends(get_admin_user)):
+    """Create a shipping zone"""
+    zone_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    zone_doc = {
+        "id": zone_id,
+        "name": zone.name,
+        "regions": zone.regions,
+        "base_rate": zone.base_rate,
+        "per_item_rate": zone.per_item_rate,
+        "free_shipping_threshold": zone.free_shipping_threshold,
+        "is_active": True,
+        "created_at": now
+    }
+    await db.shipping_zones.insert_one(zone_doc)
+    
+    return ShippingZoneResponse(
+        id=zone_id,
+        name=zone.name,
+        regions=zone.regions,
+        base_rate=zone.base_rate,
+        per_item_rate=zone.per_item_rate,
+        free_shipping_threshold=zone.free_shipping_threshold,
+        is_active=True,
+        created_at=datetime.fromisoformat(now)
+    )
+
+@api_router.post("/calculate-shipping")
+async def calculate_shipping(city: str, item_count: int = 1, order_total: float = 0):
+    """Calculate shipping cost for a city"""
+    zones = await db.shipping_zones.find({"is_active": True}, {"_id": 0}).to_list(100)
+    
+    for zone in zones:
+        if city.lower() in [r.lower() for r in zone["regions"]]:
+            # Check for free shipping
+            if zone.get("free_shipping_threshold") and order_total >= zone["free_shipping_threshold"]:
+                return {"shipping_cost": 0, "zone": zone["name"], "free_shipping": True}
+            
+            cost = zone["base_rate"] + (zone.get("per_item_rate", 0) * (item_count - 1))
+            return {"shipping_cost": cost, "zone": zone["name"], "free_shipping": False}
+    
+    # Default shipping if no zone found
+    return {"shipping_cost": 500, "zone": "Standard", "free_shipping": False}
+
+# ==================== TAX CONFIGURATION ====================
+@api_router.get("/tax-config")
+async def get_tax_config():
+    """Get tax configuration"""
+    config = await db.tax_config.find_one({}, {"_id": 0})
+    if not config:
+        return {"vat_rate": 16.0, "vat_enabled": True, "tax_inclusive": True}
+    return config
+
+@api_router.patch("/admin/tax-config")
+async def update_tax_config(config: TaxConfigUpdate, user: dict = Depends(get_admin_user)):
+    """Update tax configuration"""
+    await db.tax_config.update_one(
+        {},
+        {"$set": {
+            "vat_rate": config.vat_rate,
+            "vat_enabled": config.vat_enabled,
+            "tax_inclusive": config.tax_inclusive
+        }},
+        upsert=True
+    )
+    return {"message": "Tax configuration updated"}
+
+# ==================== PASSWORD RESET ====================
+@api_router.post("/auth/forgot-password")
+async def forgot_password(request: PasswordResetRequest, background_tasks: BackgroundTasks):
+    """Request password reset"""
+    user = await db.users.find_one({"email": request.email}, {"_id": 0})
+    if not user:
+        # Don't reveal if user exists
+        return {"message": "If an account exists with this email, a reset link will be sent"}
+    
+    # Generate reset token
+    token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+    expires = datetime.now(timezone.utc) + timedelta(hours=1)
+    
+    await db.password_resets.insert_one({
+        "user_id": user["id"],
+        "token": token,
+        "expires_at": expires.isoformat(),
+        "used": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Send email (if configured)
+    if SMTP_EMAIL and SMTP_PASSWORD:
+        reset_html = f"""
+        <html>
+        <body>
+            <h2>Password Reset Request</h2>
+            <p>You requested a password reset. Use this token to reset your password:</p>
+            <p style="font-size: 24px; font-weight: bold; color: #10B981;">{token}</p>
+            <p>This token expires in 1 hour.</p>
+            <p>If you didn't request this, please ignore this email.</p>
+        </body>
+        </html>
+        """
+        background_tasks.add_task(email_service.send_email, request.email, "Password Reset - Wacka Accessories", reset_html)
+    
+    return {"message": "If an account exists with this email, a reset link will be sent"}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(data: PasswordResetConfirm):
+    """Reset password with token"""
+    reset = await db.password_resets.find_one({
+        "token": data.token,
+        "used": False
+    }, {"_id": 0})
+    
+    if not reset:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    
+    expires = datetime.fromisoformat(reset["expires_at"])
+    if datetime.now(timezone.utc) > expires:
+        raise HTTPException(status_code=400, detail="Reset token has expired")
+    
+    # Update password
+    hashed = hash_password(data.new_password)
+    await db.users.update_one({"id": reset["user_id"]}, {"$set": {"password": hashed}})
+    
+    # Mark token as used
+    await db.password_resets.update_one({"token": data.token}, {"$set": {"used": True}})
+    
+    return {"message": "Password reset successfully"}
+
+# ==================== RECENTLY VIEWED PRODUCTS ====================
+@api_router.post("/products/{product_id}/view")
+async def record_product_view(product_id: str, user: dict = Depends(get_current_user)):
+    """Record a product view for recently viewed"""
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Update or insert view record
+    await db.recently_viewed.update_one(
+        {"user_id": user["id"], "product_id": product_id},
+        {"$set": {"viewed_at": now}},
+        upsert=True
+    )
+    
+    # Increment product view count
+    await db.products.update_one({"id": product_id}, {"$inc": {"view_count": 1}})
+    
+    return {"message": "View recorded"}
+
+@api_router.get("/recently-viewed", response_model=List[ProductResponse])
+async def get_recently_viewed(limit: int = 10, user: dict = Depends(get_current_user)):
+    """Get recently viewed products"""
+    views = await db.recently_viewed.find(
+        {"user_id": user["id"]}, {"_id": 0}
+    ).sort("viewed_at", -1).limit(limit).to_list(limit)
+    
+    result = []
+    for v in views:
+        product = await db.products.find_one({"id": v["product_id"], "is_active": True}, {"_id": 0})
+        if product:
+            inventory = await db.inventory.find_one({"product_id": product["id"]}, {"_id": 0})
+            result.append(ProductResponse(
+                id=product["id"],
+                name=product["name"],
+                slug=product["slug"],
+                description=product["description"],
+                price=product["price"],
+                discount_price=product.get("discount_price"),
+                category=product["category"],
+                sku=product["sku"],
+                images=product.get("images", []),
+                is_active=product["is_active"],
+                stock_quantity=inventory["quantity"] if inventory else 0,
+                created_at=datetime.fromisoformat(product["created_at"]) if isinstance(product["created_at"], str) else product["created_at"]
+            ))
+    return result
+
+# ==================== ACTIVITY LOGS ====================
+async def log_activity(user_id: str, user_name: str, action: str, entity_type: str, entity_id: str = None, details: dict = None, ip_address: str = None):
+    """Log admin activity"""
+    await db.activity_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "user_name": user_name,
+        "action": action,
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "details": details,
+        "ip_address": ip_address,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
+@api_router.get("/admin/activity-logs", response_model=List[ActivityLogResponse])
+async def get_activity_logs(skip: int = 0, limit: int = 50, user: dict = Depends(get_admin_user)):
+    """Get activity logs"""
+    logs = await db.activity_logs.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return [
+        ActivityLogResponse(
+            id=log["id"],
+            user_id=log["user_id"],
+            user_name=log["user_name"],
+            action=log["action"],
+            entity_type=log["entity_type"],
+            entity_id=log.get("entity_id"),
+            details=log.get("details"),
+            ip_address=log.get("ip_address"),
+            created_at=datetime.fromisoformat(log["created_at"]) if isinstance(log["created_at"], str) else log["created_at"]
+        )
+        for log in logs
+    ]
+
+# ==================== PDF INVOICE GENERATION ====================
+@api_router.get("/orders/{order_id}/invoice")
+async def get_order_invoice(order_id: str, user: dict = Depends(get_current_user)):
+    """Generate PDF invoice for an order"""
+    order = await db.orders.find_one({"id": order_id, "user_id": user["id"]}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Get store settings
+    settings = await db.store_settings.find_one({}, {"_id": 0})
+    store_name = settings.get("store_name", "Wacka Accessories") if settings else "Wacka Accessories"
+    
+    # Generate HTML invoice
+    items_html = ""
+    for item in order["items"]:
+        subtotal = item["price"] * item["quantity"]
+        items_html += f"""
+        <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">{item['product_name']}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">{item['quantity']}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">KES {item['price']:,.0f}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">KES {subtotal:,.0f}</td>
+        </tr>
+        """
+    
+    address = order.get("address_snapshot", {})
+    address_text = f"{address.get('address_line', '')}, {address.get('city', '')}, {address.get('country', 'Kenya')}"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Invoice #{order_id[:8].upper()}</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; color: #333; }}
+            .header {{ display: flex; justify-content: space-between; margin-bottom: 40px; }}
+            .company {{ font-size: 24px; font-weight: bold; color: #10B981; }}
+            .invoice-title {{ font-size: 28px; color: #333; }}
+            .invoice-info {{ margin-bottom: 30px; }}
+            .info-row {{ display: flex; margin-bottom: 5px; }}
+            .info-label {{ width: 120px; font-weight: bold; }}
+            table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+            th {{ background: #f3f4f6; padding: 10px; text-align: left; }}
+            .total-row {{ font-size: 18px; font-weight: bold; }}
+            .footer {{ margin-top: 40px; text-align: center; color: #666; font-size: 12px; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="company">{store_name}</div>
+            <div class="invoice-title">INVOICE</div>
+        </div>
+        
+        <div class="invoice-info">
+            <div class="info-row"><span class="info-label">Invoice #:</span> {order_id[:8].upper()}</div>
+            <div class="info-row"><span class="info-label">Date:</span> {datetime.fromisoformat(order['created_at']).strftime('%B %d, %Y')}</div>
+            <div class="info-row"><span class="info-label">Status:</span> {order['status'].replace('_', ' ').title()}</div>
+            <div class="info-row"><span class="info-label">Phone:</span> {order.get('phone_number', 'N/A')}</div>
+            <div class="info-row"><span class="info-label">Address:</span> {address_text}</div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th style="text-align: center;">Qty</th>
+                    <th style="text-align: right;">Price</th>
+                    <th style="text-align: right;">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {items_html}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="3" style="padding: 15px 8px; text-align: right;">Total:</td>
+                    <td style="padding: 15px 8px; text-align: right;">KES {order['total_amount']:,.0f}</td>
+                </tr>
+            </tfoot>
+        </table>
+        
+        <div class="footer">
+            <p>Thank you for shopping with {store_name}!</p>
+            <p>This is a computer-generated invoice.</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    # Return HTML content (frontend can print/save as PDF)
+    return {
+        "html": html_content,
+        "order_id": order_id,
+        "filename": f"invoice-{order_id[:8].upper()}.pdf"
+    }
+
+# ==================== INVENTORY HISTORY ====================
+@api_router.get("/admin/inventory/{product_id}/history")
+async def get_inventory_history(product_id: str, user: dict = Depends(get_admin_user)):
+    """Get inventory movement history for a product"""
+    logs = await db.inventory_logs.find(
+        {"product_id": product_id}, {"_id": 0}
+    ).sort("created_at", -1).limit(50).to_list(50)
+    
+    return logs
+
 # Include router
 app.include_router(api_router)
 
