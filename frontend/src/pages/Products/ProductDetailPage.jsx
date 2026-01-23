@@ -315,8 +315,183 @@ export default function ProductDetailPage() {
                 <span className="text-gray-600">Secure M-Pesa payment</span>
               </div>
             </div>
+
+            {/* Wishlist Button */}
+            <div className="mt-6">
+              <Button
+                variant="outline"
+                onClick={toggleWishlist}
+                disabled={wishlistLoading}
+                className={`rounded-full ${isInWishlist ? 'border-red-500 text-red-500' : ''}`}
+                data-testid="wishlist-btn"
+              >
+                <Heart className={`h-5 w-5 mr-2 ${isInWishlist ? 'fill-red-500' : ''}`} />
+                {isInWishlist ? 'In Wishlist' : 'Add to Wishlist'}
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Reviews Section */}
+        <div className="mt-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              Customer Reviews
+              {reviews.length > 0 && (
+                <span className="ml-3 text-lg font-normal text-gray-500">
+                  ({averageRating} ★ · {reviews.length} reviews)
+                </span>
+              )}
+            </h2>
+            {isAuthenticated && !showReviewForm && (
+              <Button
+                onClick={() => setShowReviewForm(true)}
+                variant="outline"
+                className="rounded-full"
+                data-testid="write-review-btn"
+              >
+                Write a Review
+              </Button>
+            )}
+          </div>
+
+          {/* Review Form */}
+          {showReviewForm && (
+            <div className="bg-white rounded-xl p-6 mb-8">
+              <h3 className="font-semibold text-gray-900 mb-4">Write Your Review</h3>
+              <form onSubmit={submitReview} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewRating(star)}
+                        className="p-1"
+                      >
+                        <Star
+                          className={`h-8 w-8 ${
+                            star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Title (optional)</label>
+                  <Input
+                    value={reviewTitle}
+                    onChange={(e) => setReviewTitle(e.target.value)}
+                    placeholder="Sum up your experience"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Review (optional)</label>
+                  <Textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Tell others about your experience..."
+                    rows={4}
+                  />
+                </div>
+                
+                <div className="flex gap-3">
+                  <Button
+                    type="submit"
+                    disabled={submittingReview}
+                    className="bg-emerald-500 hover:bg-emerald-600 rounded-full"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowReviewForm(false)}
+                    className="rounded-full"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Reviews List */}
+          {reviews.length === 0 ? (
+            <div className="bg-white rounded-xl p-8 text-center">
+              <Star className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <div key={review.id} className="bg-white rounded-xl p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="flex gap-0.5 mb-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-4 w-4 ${
+                              star <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      {review.title && (
+                        <h4 className="font-semibold text-gray-900">{review.title}</h4>
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {review.comment && (
+                    <p className="text-gray-600 mb-2">{review.comment}</p>
+                  )}
+                  <p className="text-sm text-gray-500">By {review.user_name}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              Related Products
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {relatedProducts.map((relProduct) => (
+                <Link
+                  key={relProduct.id}
+                  to={`/products/${relProduct.id}`}
+                  className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
+                >
+                  <div className="aspect-square">
+                    <img
+                      src={relProduct.images?.[0] || 'https://placehold.co/300x300/f3f4f6/9ca3af?text=P'}
+                      alt={relProduct.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-medium text-gray-900 line-clamp-1">{relProduct.name}</h3>
+                    <p className="text-emerald-600 font-bold mt-1">
+                      KES {(relProduct.discount_price || relProduct.price).toLocaleString()}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
