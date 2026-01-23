@@ -53,7 +53,65 @@ export default function CheckoutPage() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Calculate shipping when city changes
+    if (name === 'city' && value && deliveryMethod === 'delivery') {
+      calculateShipping(value);
+    }
   };
+
+  const calculateShipping = async (city) => {
+    if (!city) return;
+    setShippingLoading(true);
+    try {
+      const response = await shippingAPI.calculate(city, cart.item_count, cart.total);
+      setShippingCost(response.data.shipping_cost);
+    } catch (error) {
+      // Use default shipping if calculation fails
+      setShippingCost(300);
+    } finally {
+      setShippingLoading(false);
+    }
+  };
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error('Please enter a coupon code');
+      return;
+    }
+    
+    setCouponLoading(true);
+    try {
+      const response = await couponAPI.validate(couponCode.trim(), cart.total);
+      setAppliedCoupon(response.data);
+      setDiscount(response.data.discount);
+      toast.success(`Coupon applied! You save KES ${response.data.discount.toLocaleString()}`);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Invalid coupon code');
+      setAppliedCoupon(null);
+      setDiscount(0);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscount(0);
+    setCouponCode('');
+    toast.success('Coupon removed');
+  };
+
+  // Calculate shipping on city change
+  useEffect(() => {
+    if (formData.city && deliveryMethod === 'delivery') {
+      calculateShipping(formData.city);
+    } else if (deliveryMethod === 'pickup') {
+      setShippingCost(0);
+    }
+  }, [deliveryMethod]);
+
+  const finalTotal = cart.total - discount + (deliveryMethod === 'delivery' ? shippingCost : 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
