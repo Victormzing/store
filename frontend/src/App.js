@@ -114,6 +114,11 @@ function AppRoutes() {
               <OrdersPage />
             </ProtectedRoute>
           } />
+          <Route path="/wishlist" element={
+            <ProtectedRoute>
+              <WishlistPage />
+            </ProtectedRoute>
+          } />
           
           {/* Admin Routes */}
           <Route path="/admin" element={
