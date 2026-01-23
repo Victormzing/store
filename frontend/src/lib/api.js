@@ -123,6 +123,79 @@ export const adminAPI = {
   createBlogPost: (data) => api.post('/admin/blog', data),
   updateBlogPost: (id, data) => api.put(`/admin/blog/${id}`, data),
   deleteBlogPost: (id) => api.delete(`/admin/blog/${id}`),
+  // Coupons
+  getCoupons: () => api.get('/admin/coupons'),
+  createCoupon: (data) => api.post('/admin/coupons', data),
+  deleteCoupon: (id) => api.delete(`/admin/coupons/${id}`),
+  // Reviews
+  getReviews: (params) => api.get('/admin/reviews', { params }),
+  approveReview: (id, approved) => api.patch(`/admin/reviews/${id}/approve?approved=${approved}`),
+  deleteReview: (id) => api.delete(`/admin/reviews/${id}`),
+  // Suppliers
+  getSuppliers: () => api.get('/admin/suppliers'),
+  createSupplier: (data) => api.post('/admin/suppliers', data),
+  updateSupplier: (id, data) => api.put(`/admin/suppliers/${id}`, data),
+  deleteSupplier: (id) => api.delete(`/admin/suppliers/${id}`),
+  // Shipping
+  getShippingZones: () => api.get('/shipping-zones'),
+  createShippingZone: (data) => api.post('/admin/shipping-zones', data),
+  // Tax
+  getTaxConfig: () => api.get('/tax-config'),
+  updateTaxConfig: (data) => api.patch('/admin/tax-config', data),
+  // Activity Logs
+  getActivityLogs: (params) => api.get('/admin/activity-logs', { params }),
+  // Order Tracking
+  addTrackingEvent: (orderId, data) => api.post(`/admin/orders/${orderId}/tracking`, null, { params: data }),
+  // Inventory History
+  getInventoryHistory: (productId) => api.get(`/admin/inventory/${productId}/history`),
+};
+
+// Coupon APIs
+export const couponAPI = {
+  validate: (code, orderTotal) => api.post('/coupons/validate', { code, order_total: orderTotal }),
+};
+
+// Review APIs
+export const reviewAPI = {
+  create: (data) => api.post('/reviews', data),
+  getByProduct: (productId, params) => api.get(`/products/${productId}/reviews`, { params }),
+};
+
+// Wishlist APIs
+export const wishlistAPI = {
+  getAll: () => api.get('/wishlist'),
+  add: (productId) => api.post(`/wishlist/${productId}`),
+  remove: (productId) => api.delete(`/wishlist/${productId}`),
+};
+
+// Order Tracking APIs
+export const trackingAPI = {
+  getOrderTracking: (orderId) => api.get(`/orders/${orderId}/tracking`),
+  getInvoice: (orderId) => api.get(`/orders/${orderId}/invoice`),
+};
+
+// Recently Viewed APIs
+export const recentlyViewedAPI = {
+  record: (productId) => api.post(`/products/${productId}/view`),
+  getAll: (limit = 10) => api.get('/recently-viewed', { params: { limit } }),
+};
+
+// Related Products
+export const relatedAPI = {
+  getByProduct: (productId, limit = 4) => api.get(`/products/${productId}/related`, { params: { limit } }),
+};
+
+// Shipping Calculation
+export const shippingAPI = {
+  calculate: (city, itemCount, orderTotal) => api.post('/calculate-shipping', null, { 
+    params: { city, item_count: itemCount, order_total: orderTotal } 
+  }),
+};
+
+// Password Reset
+export const passwordAPI = {
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, new_password: newPassword }),
 };
 
 // Seed data
