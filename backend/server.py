@@ -3606,6 +3606,13 @@ async def startup():
     await db.inventory.create_index("product_id", unique=True)
     await db.categories.create_index("slug", unique=True)
     await db.blog_posts.create_index("slug", unique=True)
+    await db.coupons.create_index("code", unique=True)
+    await db.reviews.create_index([("user_id", 1), ("product_id", 1)], unique=True)
+    await db.wishlists.create_index([("user_id", 1), ("product_id", 1)], unique=True)
+    await db.suppliers.create_index("id", unique=True)
+    await db.shipping_zones.create_index("id", unique=True)
+    await db.recently_viewed.create_index([("user_id", 1), ("product_id", 1)], unique=True)
+    await db.activity_logs.create_index("created_at")
     logger.info("Database indexes created")
 
 @app.on_event("shutdown")
