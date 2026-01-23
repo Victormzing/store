@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Phone, Check, Loader2, CreditCard, Truck, Package } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Check, Loader2, CreditCard, Truck, Package, Ticket, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { orderAPI } from '../../lib/api';
+import { orderAPI, couponAPI, shippingAPI } from '../../lib/api';
 import { toast } from 'sonner';
 
 export default function CheckoutPage() {
