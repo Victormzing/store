@@ -21,6 +21,7 @@ import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
 import BlogListPage from "./pages/Blog/BlogListPage";
 import BlogDetailPage from "./pages/Blog/BlogDetailPage";
+import WishlistPage from "./pages/Wishlist/WishlistPage";
 
 // Admin Pages
 import AdminDashboard from "./pages/Admin/AdminDashboard";
@@ -33,6 +34,9 @@ import AdminBlog from "./pages/Admin/AdminBlog";
 import AdminUsers from "./pages/Admin/AdminUsers";
 import AdminEmailComposer from "./pages/Admin/AdminEmailComposer";
 import AdminSettings from "./pages/Admin/AdminSettings";
+import AdminCoupons from "./pages/Admin/AdminCoupons";
+import AdminReviews from "./pages/Admin/AdminReviews";
+import AdminSuppliers from "./pages/Admin/AdminSuppliers";
 
 // Protected Route Components
 const ProtectedRoute = ({ children }) => {
