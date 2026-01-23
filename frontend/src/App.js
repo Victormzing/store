@@ -171,6 +171,21 @@ function AppRoutes() {
               <AdminSettings />
             </AdminRoute>
           } />
+          <Route path="/admin/coupons" element={
+            <AdminRoute>
+              <AdminCoupons />
+            </AdminRoute>
+          } />
+          <Route path="/admin/reviews" element={
+            <AdminRoute>
+              <AdminReviews />
+            </AdminRoute>
+          } />
+          <Route path="/admin/suppliers" element={
+            <AdminRoute>
+              <AdminSuppliers />
+            </AdminRoute>
+          } />
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
