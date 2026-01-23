@@ -646,6 +646,156 @@ class UserCreateByAdmin(BaseModel):
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
 
+# ==================== NEW MODELS FOR EXTENDED FEATURES ====================
+
+# Product Variants
+class ProductVariant(BaseModel):
+    id: Optional[str] = None
+    name: str  # e.g., "Size", "Color"
+    value: str  # e.g., "Large", "Red"
+    sku_suffix: Optional[str] = None
+    price_adjustment: float = 0.0
+    stock_quantity: int = 0
+
+class ProductVariantCreate(BaseModel):
+    name: str
+    value: str
+    sku_suffix: Optional[str] = None
+    price_adjustment: float = 0.0
+    stock_quantity: int = 0
+
+# Coupon/Discount Codes
+class CouponCreate(BaseModel):
+    code: str
+    type: CouponType
+    value: float  # percentage or fixed amount
+    min_order_amount: float = 0
+    max_discount: Optional[float] = None  # for percentage coupons
+    usage_limit: Optional[int] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    is_active: bool = True
+
+class CouponResponse(BaseModel):
+    id: str
+    code: str
+    type: CouponType
+    value: float
+    min_order_amount: float
+    max_discount: Optional[float] = None
+    usage_limit: Optional[int] = None
+    times_used: int
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    is_active: bool
+    created_at: datetime
+
+class CouponValidation(BaseModel):
+    code: str
+    order_total: float
+
+# Reviews & Ratings
+class ReviewCreate(BaseModel):
+    product_id: str
+    rating: int = Field(..., ge=1, le=5)
+    title: Optional[str] = None
+    comment: Optional[str] = None
+
+class ReviewResponse(BaseModel):
+    id: str
+    product_id: str
+    user_id: str
+    user_name: str
+    rating: int
+    title: Optional[str] = None
+    comment: Optional[str] = None
+    is_approved: bool
+    created_at: datetime
+
+# Wishlist
+class WishlistItemResponse(BaseModel):
+    id: str
+    product_id: str
+    product_name: str
+    product_image: str
+    price: float
+    discount_price: Optional[float] = None
+    is_in_stock: bool
+    added_at: datetime
+
+# Order Tracking
+class OrderTrackingEvent(BaseModel):
+    id: str
+    order_id: str
+    status: str
+    description: str
+    location: Optional[str] = None
+    timestamp: datetime
+
+# Supplier Management
+class SupplierCreate(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    contact_person: Optional[str] = None
+    notes: Optional[str] = None
+
+class SupplierResponse(BaseModel):
+    id: str
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    contact_person: Optional[str] = None
+    notes: Optional[str] = None
+    products_count: int = 0
+    created_at: datetime
+
+# Shipping Configuration
+class ShippingZoneCreate(BaseModel):
+    name: str  # e.g., "Nairobi", "Rest of Kenya"
+    regions: List[str]  # cities/regions
+    base_rate: float
+    per_item_rate: float = 0
+    free_shipping_threshold: Optional[float] = None
+
+class ShippingZoneResponse(BaseModel):
+    id: str
+    name: str
+    regions: List[str]
+    base_rate: float
+    per_item_rate: float
+    free_shipping_threshold: Optional[float] = None
+    is_active: bool
+    created_at: datetime
+
+# Tax Configuration
+class TaxConfigUpdate(BaseModel):
+    vat_rate: float = 16.0  # Kenya VAT rate
+    vat_enabled: bool = True
+    tax_inclusive: bool = True  # prices include VAT
+
+# Password Reset
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
+# Activity Log
+class ActivityLogResponse(BaseModel):
+    id: str
+    user_id: str
+    user_name: str
+    action: str
+    entity_type: str
+    entity_id: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
+    ip_address: Optional[str] = None
+    created_at: datetime
+
 # ==================== AUTH HELPERS ====================
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
