@@ -23,6 +23,16 @@ export default function CheckoutPage() {
     city: 'Nairobi',
     country: 'Kenya',
   });
+  
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [discount, setDiscount] = useState(0);
+  
+  // Shipping state
+  const [shippingCost, setShippingCost] = useState(0);
+  const [shippingLoading, setShippingLoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
