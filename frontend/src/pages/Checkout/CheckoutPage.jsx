@@ -423,13 +423,70 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>KES {cart.total.toLocaleString()}</span>
                 </div>
+                
+                {/* Coupon Section */}
+                <div className="py-3 border-y">
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between bg-emerald-50 p-3 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Ticket className="h-4 w-4 text-emerald-600" />
+                        <span className="text-emerald-700 font-medium">{appliedCoupon.code}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-emerald-600">-KES {discount.toLocaleString()}</span>
+                        <button
+                          onClick={removeCoupon}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Coupon code"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        className="flex-1"
+                        data-testid="coupon-input"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={applyCoupon}
+                        disabled={couponLoading}
+                        data-testid="apply-coupon-btn"
+                      >
+                        {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                {discount > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Discount</span>
+                    <span>-KES {discount.toLocaleString()}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between text-gray-600">
                   <span>Delivery</span>
-                  <span className="text-emerald-600">Free</span>
+                  {deliveryMethod === 'pickup' ? (
+                    <span className="text-emerald-600">Free (Pickup)</span>
+                  ) : shippingLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : shippingCost === 0 ? (
+                    <span className="text-emerald-600">Free</span>
+                  ) : (
+                    <span>KES {shippingCost.toLocaleString()}</span>
+                  )}
                 </div>
+                
                 <div className="border-t pt-2 flex justify-between font-semibold text-gray-900 text-lg">
                   <span>Total</span>
-                  <span>KES {cart.total.toLocaleString()}</span>
+                  <span>KES {finalTotal.toLocaleString()}</span>
                 </div>
               </div>
             </div>
