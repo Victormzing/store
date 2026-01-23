@@ -1,25 +1,76 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Minus, Plus, Package, Truck, Shield } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, ShoppingCart, Minus, Plus, Package, Truck, Shield, Heart, Star, Send } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { Textarea } from '../../components/ui/textarea';
+import { Input } from '../../components/ui/input';
 import { useCart } from '../../context/CartContext';
-import { productAPI } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
+import { productAPI, reviewAPI, wishlistAPI, relatedAPI, recentlyViewedAPI } from '../../lib/api';
+import { toast } from 'sonner';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart, loading: cartLoading } = useCart();
+  const { isAuthenticated } = useAuth();
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [reviews, setReviews] = useState([]);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  
+  // Review form
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const response = await productAPI.getOne(id);
         setProduct(response.data);
+        
+        // Record view if authenticated
+        if (isAuthenticated) {
+          try {
+            await recentlyViewedAPI.record(id);
+          } catch (e) {
+            // Ignore view recording errors
+          }
+        }
+        
+        // Fetch reviews
+        try {
+          const reviewsRes = await reviewAPI.getByProduct(id);
+          setReviews(reviewsRes.data);
+        } catch (e) {
+          // Ignore if no reviews
+        }
+        
+        // Fetch related products
+        try {
+          const relatedRes = await relatedAPI.getByProduct(id);
+          setRelatedProducts(relatedRes.data);
+        } catch (e) {
+          // Ignore if no related products
+        }
+        
+        // Check wishlist status
+        if (isAuthenticated) {
+          try {
+            const wishlistRes = await wishlistAPI.getAll();
+            setIsInWishlist(wishlistRes.data.some(item => item.product_id === id));
+          } catch (e) {
+            // Ignore
+          }
+        }
       } catch (error) {
         console.error('Error fetching product:', error);
         navigate('/products');
@@ -29,7 +80,7 @@ export default function ProductDetailPage() {
     };
     
     fetchProduct();
-  }, [id, navigate]);
+  }, [id, navigate, isAuthenticated]);
 
   const handleAddToCart = async () => {
     const success = await addToCart(product.id, quantity);
@@ -37,6 +88,69 @@ export default function ProductDetailPage() {
       setQuantity(1);
     }
   };
+
+  const toggleWishlist = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please login to add items to wishlist');
+      navigate('/login');
+      return;
+    }
+    
+    setWishlistLoading(true);
+    try {
+      if (isInWishlist) {
+        await wishlistAPI.remove(id);
+        setIsInWishlist(false);
+        toast.success('Removed from wishlist');
+      } else {
+        await wishlistAPI.add(id);
+        setIsInWishlist(true);
+        toast.success('Added to wishlist');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update wishlist');
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
+
+  const submitReview = async (e) => {
+    e.preventDefault();
+    
+    if (!isAuthenticated) {
+      toast.error('Please login to submit a review');
+      navigate('/login');
+      return;
+    }
+    
+    setSubmittingReview(true);
+    try {
+      await reviewAPI.create({
+        product_id: id,
+        rating: reviewRating,
+        title: reviewTitle || null,
+        comment: reviewComment || null,
+      });
+      
+      toast.success('Review submitted successfully!');
+      setShowReviewForm(false);
+      setReviewRating(5);
+      setReviewTitle('');
+      setReviewComment('');
+      
+      // Refresh reviews
+      const reviewsRes = await reviewAPI.getByProduct(id);
+      setReviews(reviewsRes.data);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const averageRating = reviews.length > 0 
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) 
+    : 0;
 
   if (loading) {
     return (
