@@ -105,6 +105,10 @@ export const Navbar = () => {
                     <Package className="mr-2 h-4 w-4" />
                     My Orders
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/wishlist')} data-testid="my-wishlist-link">
+                    <Heart className="mr-2 h-4 w-4" />
+                    My Wishlist
+                  </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem onClick={() => navigate('/admin')} data-testid="admin-dashboard-link">
                       <User className="mr-2 h-4 w-4" />
