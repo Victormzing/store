@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class WackaAccessoriesAPITester:
-    def __init__(self, base_url="https://store-revamp-4.preview.emergentagent.com"):
+    def __init__(self, base_url="https://shopgenie-4.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.admin_token = None
