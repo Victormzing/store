@@ -13,7 +13,10 @@ import {
   Bell,
   Users,
   Mail,
-  Settings
+  Settings,
+  Ticket,
+  Star,
+  Truck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/api';
@@ -33,6 +36,9 @@ const navItems = [
   { path: '/admin/inventory', icon: Boxes, label: 'Inventory' },
   { path: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
   { path: '/admin/payments', icon: CreditCard, label: 'Payments' },
+  { path: '/admin/coupons', icon: Ticket, label: 'Coupons' },
+  { path: '/admin/reviews', icon: Star, label: 'Reviews' },
+  { path: '/admin/suppliers', icon: Truck, label: 'Suppliers' },
   { path: '/admin/blog', icon: FileText, label: 'Blog' },
   { path: '/admin/users', icon: Users, label: 'Users' },
   { path: '/admin/email', icon: Mail, label: 'Email' },
