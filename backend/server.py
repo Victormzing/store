@@ -102,6 +102,15 @@ class StockMovementReason(str, Enum):
     RETURN = "return"
     RESTOCK = "restock"
 
+class CouponType(str, Enum):
+    PERCENTAGE = "percentage"
+    FIXED = "fixed"
+
+class ProductStatus(str, Enum):
+    ACTIVE = "active"
+    DRAFT = "draft"
+    OUT_OF_STOCK = "out_of_stock"
+
 # ==================== EMAIL SERVICE ====================
 class EmailService:
     def __init__(self):
